@@ -1,3 +1,4 @@
 .env
 anythingllm/
 ollama_data/
+anythingllm_storage/
