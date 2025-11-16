@@ -1,0 +1,33 @@
+                +---------------------------+
+                |        AnythingLLM        |
+                |        (Web UI)           |
+                +-------------+-------------+
+                              |
+                              v  HTTP
+                    +---------+---------+
+                    |      Go Membrane  |
+                    |  (Router / Brain) |
+                    +----+----------+---+
+                         |          |
+                         |          |
+                         v          v
+              PARENT (big model)   CHILD AGENTS (many)
+                         |          |
+                         |          +----------------------+
+                         |                                 |
+                         v                                 v
+          +---------------------------+        +---------------------------+
+          | Parent Orchestrator LLM   |        |  Child Code Agent        |
+          |  - sees only child tools  |        |  - Code Model            |
+          |    (child_code, child_web)|        |  - Tools: http, fs, git  |
+          +---------------------------+        +---------------------------+
+                                                       |
+                                                       v
+                                          +----------------------------+
+                                          |   System Tools (via Go)    |
+                                          |   - HTTP GET/POST          |
+                                          |   - Filesystem             |
+                                          |   - Git                    |
+                                          |   - Embeddings (Ollama)    |
+                                          |   - etc.                   |
+                                          +----------------------------+
