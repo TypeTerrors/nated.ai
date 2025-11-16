@@ -1,62 +1,71 @@
-(1) User types in AnythingLLM
-        |
-        v
-(2) AnythingLLM sends request
-    to Go Membrane
-        |
-        v
-(3) Go Membrane calls
-    Parent Orchestrator Model
-    with:
-      - user message
-      - list of AVAILABLE CHILD AGENTS
-        (each child is exposed as a "tool")
-        |
-        v
-(4) Parent Orchestrator thinks:
-      - can I answer directly?
-      - or should I use a child agent?
-        |
-        +--> if direct answer:
-        |       return answer to Go Membrane
-        |       (skip children/tools)
-        |
-        +--> if needs child:
-                returns a tool_call like:
-                  {
-                    "tool": "child_code_agent",
-                    "args": { "prompt": "..." }
-                  }
-                |
-                v
-(5) Go Membrane sees tool_call:
-      - recognizes it's a CHILD CALL
-        (not a raw filesystem/http tool)
-      - routes to corresponding child agent
-        |
-        v
-(6) Child Agent loop:
-      - Go Membrane calls Child Model
-        ("code_agent model")
-        - with child-specific tools registered
-      - Child model may:
-          - ask to use http_get, fs_read, embeddings, etc.
-          - Go Membrane runs those tools
-          - feeds results back to child
-      - Child returns a final result to Go Membrane
-        |
-        v
-(7) Go Membrane passes child result
-    back to Parent Orchestrator
-        |
-        v
-(8) Parent Orchestrator:
-      - incorporates child result
-      - produces final answer
-        |
-        v
-(9) Go Membrane sends final answer
-    back to AnythingLLM
-        |
-        v
-(10) User sees response
+User (AnythingLLM)
+      |
+      v
+Go Membrane (API)
+      |
+      v
+Parent Orchestrator Model
+  - sees user wants to "see what's on the front page of this google search"
+  - decides:
+      "I can do this with a simple http_get"
+      |
+      v
+Tool call: http_get(url)
+      |
+      v
+Go Membrane
+  - sees tool is "http_get" (direct tool)
+  - runs HTTP client
+  - returns HTML to parent as tool result
+      |
+      v
+Parent Orchestrator
+  - reads HTML (as text)
+  - parses mentally / summarizes
+  - returns final answer
+      |
+      v
+Go Membrane -> AnythingLLM -> User
+
+---------
+
+User: "Refactor this Go service and update the Docker + Kubernetes manifests"
+      |
+      v
+AnythingLLM -> Go Membrane -> Parent Orchestrator
+      |
+      v
+Parent Orchestrator
+  - sees a big, multi-step, code-heavy task
+  - decides:
+      "I should call child_code_agent with the full request"
+      |
+      v
+Tool call: child_code_agent({ task: "...", context: ... })
+      |
+      v
+Go Membrane
+  - sees tool is "child_code_agent" (a child model call)
+  - starts a CHILD SESSION:
+
+    Child Code Agent Model
+       |
+       +-> calls tools like:
+           - fs_read / fs_write
+           - git_diff
+           - http_get (for docs)
+           - code_model (specialized)
+       |
+       v
+    Child Code Agent returns a structured result
+      |
+      v
+Go Membrane
+  - passes child result back to parent as tool output
+      |
+      v
+Parent Orchestrator
+  - integrates child result into a final, user-friendly answer
+      |
+      v
+Go Membrane -> AnythingLLM -> User

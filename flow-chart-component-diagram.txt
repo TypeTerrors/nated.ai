@@ -1,33 +1,47 @@
-                +---------------------------+
-                |        AnythingLLM        |
-                |        (Web UI)           |
-                +-------------+-------------+
-                              |
-                              v  HTTP
-                    +---------+---------+
-                    |      Go Membrane  |
-                    |  (Router / Brain) |
-                    +----+----------+---+
-                         |          |
-                         |          |
-                         v          v
-              PARENT (big model)   CHILD AGENTS (many)
-                         |          |
-                         |          +----------------------+
-                         |                                 |
-                         v                                 v
-          +---------------------------+        +---------------------------+
-          | Parent Orchestrator LLM   |        |  Child Code Agent        |
-          |  - sees only child tools  |        |  - Code Model            |
-          |    (child_code, child_web)|        |  - Tools: http, fs, git  |
-          +---------------------------+        +---------------------------+
-                                                       |
-                                                       v
-                                          +----------------------------+
-                                          |   System Tools (via Go)    |
-                                          |   - HTTP GET/POST          |
-                                          |   - Filesystem             |
-                                          |   - Git                    |
-                                          |   - Embeddings (Ollama)    |
-                                          |   - etc.                   |
-                                          +----------------------------+
+[ User in AnythingLLM ]
+            |
+            v
+[ AnythingLLM Provider (points to Go Membrane) ]
+            |
+            v
+[ Go Membrane API ]
+            |
+            v
++----------------------------------------+
+| Parent Orchestrator Model              |
+| - Has tools:                           |
+|   * http_get                           |
+|   * web_search (optional)              |
+|   * child_code_agent                   |
+|   * child_research_agent               |
+|   * child_ops_agent                    |
++----------------------------------------+
+            |
+   decides per request:
+   - use simple direct tool(s), OR
+   - delegate to child agent
+            |
+            +----------------------------+
+            |                            |
+   (A) direct tool                 (B) child agent
+       call(s)                           call
+            |                            |
+            v                            v
+   [ Go Membrane ]                [ Go Membrane ]
+   - run http_get, etc.           - start CHILD SESSION
+   - return result to parent         with child model + tools
+            |                            |
+            v                            v
+   Parent Orchestrator           Child Agent Model
+   - parses / summarizes            - uses domain tools:
+   - returns final answer              fs/http/git/mcp/etc.
+                                      - returns structured result
+            |                            |
+            v                            v
+        [ Go Membrane ]   <--------  (child result)
+            |
+            v
+        AnythingLLM
+            |
+            v
+          User
