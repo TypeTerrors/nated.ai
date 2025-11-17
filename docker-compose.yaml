@@ -1,4 +1,12 @@
 services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    ports:
+      - "3000:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+    volumes:
+      - ./open-webui/data:/app/backend/data
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
@@ -28,14 +36,14 @@ services:
       - EMBEDDING_ENGINE=ollama
       - STORAGE_DIR=/app/server/storage
       # Optional: if you want explicit embedding model config
-      # - EMBEDDING_BASE_PATH=http://ollama:11434
-      # - EMBEDDING_MODEL_PREF=nomic-embed-text:latest
+      - EMBEDDING_BASE_PATH=http://ollama:11434
+      - EMBEDDING_MODEL_PREF=nomic-embed-text:latest
 
       # --- Cloud LLM (OpenAI) support ---
       # This makes your OpenAI key available inside the container.
       # You’ll select & configure OpenAI as a provider in the UI.
       - OPEN_AI_KEY=${OPENAI_API_KEY}
-
+      - VECTOR_DB=lancedb
       # Optional: UID/GID if you care about host file permissions
       # - UID=1000
       # - GID=1000
@@ -43,8 +51,7 @@ services:
       - ollama
 
   # Cloudflare Tunnel to publicly access local llm
-  tunnel:
-    image: cloudflare/cloudflared:latest
+  tunnel:    image: cloudflare/cloudflared:latest
     container_name: tunnel
     restart: unless-stopped
     depends_on:
